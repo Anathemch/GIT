@@ -1,0 +1,82 @@
+;		Autor	Tizian Moog & Chris Wolfensberger
+;		Aufg.	Parkhaussteuerung
+;		Vers.	1.0
+
+
+;		- [ Programmablauf ] -
+Parkplaetze
+		lda	OutByte
+		and	#15		; nur Bit 0-3 (Parkplatz Counter)
+		sta	TempSpeicher
+		lda	#15		; "15 - ParkplatzBesetzt = 0" bedeutet alle Parklplaetzte besetzt
+		sub	TempSpeicher
+		beq	Besetzt
+
+		; - Einfahrt -
+Uhr		; Uhr Status in TempByte
+		in	34
+		and	#1
+		beq	ParkplatzNull
+
+AnfahrtIn	; Barriere oeffnen Eingang?
+		in	34
+		and	#2		
+		beq	DurchfahrtIn
+		lda	#32
+		or	OutByte
+		sta	OutByte		
+
+DurchfahrtIn	; Durchfahrt beim EIngang?
+		in	34
+		and	#4
+		beq	ParkplatzNull
+		lda	OutByte		; Barriere Schliessen
+		and	#223
+		add	#1		; Parkplatz +1
+		sta	OutByte
+
+ParkplatzNull	; Ist Parkplatz 0?
+		lda	OutByte
+		and	#15
+		beq	Ausgabe
+
+		; - Ausfahrt -
+Ticket		; Ticket-Bezahl Status
+		in	34
+		and	#32
+		beq	Ausgabe
+		
+AnfahrtOut	; Anfahrt beim Ausgang?
+		in	34
+		and	#8
+		beq	DurchfahrtOut
+		lda	#64
+		or	OutByte		; Barriere Ausgang oeffnen
+		sta	OutByte
+
+DurchfahrtOut	; Durchfahrt beim Ausgang
+		in	34
+		and	#16		; DUrchfahrtsensor
+		beq	Ausgabe
+		lda	OutByte
+		and	#191		; Bariere Ausgang runter
+		sub	#1		; Parkplaetze -1
+		and	#239		; Besetzt Lampe aus
+		sta	OutByte
+
+
+Ausgabe		; OutByte Ausgeben
+		lda	OutByte
+		out	79
+		jmp	Parkplaetze
+
+Besetzt		; Lampe alles Besetzt anschalten
+		lda	OutByte
+		or	#16		; Besetzt Lampe an
+		sta	OutByte
+		jmp	Ticket
+
+;		- [ Deklarationen ] -
+
+OutByte		byte	0
+TempSpeicher	byte	0
