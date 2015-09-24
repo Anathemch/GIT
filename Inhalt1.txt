@@ -1,1 +1,3 @@
-Ich bin ein Text
+Ich bin ein Text.
+
+Neuer Text für merge
